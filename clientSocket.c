@@ -36,7 +36,7 @@ int main() {
         buff[strcspn(buff, "\n")] = 0;
 
         if (strcmp(buff, "bye") == 0) {
-            printf("Server Connection End");
+            printf("Server Connection End\n");
             break; 
         }
 
