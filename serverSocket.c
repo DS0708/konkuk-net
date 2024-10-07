@@ -50,6 +50,8 @@ int main(int argc, char **argv) {
             continue;  // 실패시 다음 연결 대기
         }
 
+        printf("New client connected\n");
+
         while (1) {
             ssize_t num_bytes_read = read(client_socket, buff_rcv, BUFF_SIZE);
             if (num_bytes_read < 0) {
@@ -59,12 +61,17 @@ int main(int argc, char **argv) {
                 continue;
             }
 
+            if (num_bytes_read == 0) {
+                printf("Client disconnected\n");
+                break;  // 클라이언트 연결 종료
+            }
+
             printf("receive: %.*s\n", (int)num_bytes_read, buff_rcv);
 
             if (strncmp(buff_rcv, "bye", 3) == 0) {
+                printf("Client said bye. Closing this connection.\n");
                 close(client_socket);
-                printf("Client Connection End\n");
-                break;  // 클라이언트 연결 종료
+                break;  // 현재 클라이언트 연결 종료 후 다음 클라이언트 대기
             }
 
             // 클라이언트에게 응답 전송
@@ -72,5 +79,9 @@ int main(int argc, char **argv) {
             write(client_socket, buff_snd, strlen(buff_snd) + 1);
         }
     }
-    return 0;  // 이 부분은 서버가 종료될 경우에 도달
+    
+    // 이 부분은 while(1) 루프 때문에 실행되지 않습니다.
+    // 서버를 정상적으로 종료하려면 별도의 종료 조건이 필요합니다.
+    close(server_socket);
+    return 0;
 }
