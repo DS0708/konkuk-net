@@ -63,6 +63,7 @@ int main(int argc, char **argv) {
 
             if (strncmp(buff_rcv, "bye", 3) == 0) {
                 close(client_socket);
+                printf("Client Connection End\n")
                 break;  // 클라이언트 연결 종료
             }
 

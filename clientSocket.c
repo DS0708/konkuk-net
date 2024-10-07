@@ -7,15 +7,10 @@
 #include <sys/socket.h>
 #define BUFF_SIZE 1024
 
-int main(int argc, char **argv) {
+int main() {
     int client_socket;
     struct sockaddr_in server_addr;
     char buff[BUFF_SIZE+5];
-
-    if (argc < 2) {
-        fprintf(stderr, "사용법: %s <메시지>\n", argv[0]);
-        exit(1);
-    }
 
     client_socket = socket(PF_INET, SOCK_STREAM, 0);
     if (client_socket == -1) {
@@ -29,25 +24,36 @@ int main(int argc, char **argv) {
     server_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
 
     if (connect(client_socket, (struct sockaddr*)&server_addr, sizeof(server_addr)) == -1) {
-        perror("서버 접속 실패");
+        perror("Sever Connection Fail");
         exit(1);
     }
 
-    if (write(client_socket, argv[1], strlen(argv[1]) + 1) == -1) {
-        perror("메시지 전송 실패");
-        close(client_socket);
-        exit(1);
+    printf("Message :");
+
+    while (1) {
+        printf("Message: ");
+        fgets(buff, BUFF_SIZE, stdin); 
+        buff[strcspn(buff, "\n")] = 0;
+
+        // if (strcmp(buff, "exit") == 0) {
+        //     break;  // "exit" 입력 시 종료
+        // }
+
+        if (write(client_socket, buff, strlen(buff) + 1) == -1) {
+            perror("메시지 전송 실패");
+            break;
+        }
+
+        ssize_t num_bytes_read = read(client_socket, buff, BUFF_SIZE);
+        if (num_bytes_read == -1) {
+            perror("메시지 수신 실패");
+            break;
+        }
+
+        buff[num_bytes_read] = '\0'; // NULL-termination to safely print
+        printf("Server Response : %s\n", buff);
     }
 
-    ssize_t num_bytes_read = read(client_socket, buff, BUFF_SIZE);
-    if (num_bytes_read == -1) {
-        perror("메시지 수신 실패");
-        close(client_socket);
-        exit(1);
-    }
-
-    buff[num_bytes_read] = '\0'; // NULL-termination to safely print
-    printf("%s\n", buff);
     close(client_socket);
     return 0;
 }
