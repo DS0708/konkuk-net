@@ -28,16 +28,17 @@ int main() {
         exit(1);
     }
 
-    printf("Message :");
+
 
     while (1) {
         printf("Message: ");
         fgets(buff, BUFF_SIZE, stdin); 
         buff[strcspn(buff, "\n")] = 0;
 
-        // if (strcmp(buff, "exit") == 0) {
-        //     break;  // "exit" 입력 시 종료
-        // }
+        if (strcmp(buff, "bye") == 0) {
+            printf("Server Connection End");
+            break; 
+        }
 
         if (write(client_socket, buff, strlen(buff) + 1) == -1) {
             perror("메시지 전송 실패");
