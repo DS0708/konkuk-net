@@ -62,8 +62,8 @@ int main(int argc, char **argv) {
             printf("receive: %.*s\n", (int)num_bytes_read, buff_rcv);
 
             if (strncmp(buff_rcv, "bye", 3) == 0) {
-                close(client_socket);
                 printf("Client Connection End\n");
+                close(client_socket);
                 break;  // 클라이언트 연결 종료
             }
 
