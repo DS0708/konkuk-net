@@ -5,6 +5,7 @@
 #include <arpa/inet.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/select.h>
 #define BUFF_SIZE 1024
 
 int main(int argc, char **argv) {
@@ -15,9 +16,11 @@ int main(int argc, char **argv) {
     socklen_t client_addr_size;
     char buff_rcv[BUFF_SIZE];
     char buff_snd[BUFF_SIZE];
+    fd_set readfds;
+    int max_sd;
 
     // 서버 소켓 설정
-    memset(&server_addr, 0, sizeof(server_addr));  // 주소 구조체 초기화
+    memset(&server_addr, 0, sizeof(server_addr));
     server_socket = socket(PF_INET, SOCK_STREAM, 0);
     if (server_socket == -1) {
         perror("server socket 생성 실패");
@@ -25,9 +28,9 @@ int main(int argc, char **argv) {
     }
 
     // 서버 주소 설정
-    server_addr.sin_family = AF_INET; //Ipv4
+    server_addr.sin_family = AF_INET;
     server_addr.sin_port = htons(9000);
-    server_addr.sin_addr.s_addr = htonl(INADDR_ANY); // 0.0.0.0/0 IP 허용
+    server_addr.sin_addr.s_addr = htonl(INADDR_ANY);
 
     // 바인드 에러 처리
     if (bind(server_socket, (struct sockaddr *)&server_addr, sizeof(server_addr)) == -1) {
@@ -35,53 +38,71 @@ int main(int argc, char **argv) {
         exit(1);
     }
 
-    // 서버가 한 번에 최대 5개의 동시 연결 요청을 대기 큐에 보관할 수 있음을 의미
+    // 리스닝
     if (listen(server_socket, 5) == -1) {
         perror("listen() 실행 실패");
         exit(1);
     }
 
-    // 클라이언트 요청 처리 루프
+    printf("서버가 시작되었습니다. 클라이언트의 연결을 기다리는 중...\n");
+
     while (1) {
         client_addr_size = sizeof(client_addr);
         client_socket = accept(server_socket, (struct sockaddr *)&client_addr, &client_addr_size);
         if (client_socket == -1) {
             perror("클라이언트 연결 수락 실패");
-            continue;  // 실패시 다음 연결 대기
+            continue;
         }
 
-        printf("New client connected\n");
+        printf("New client connected. \n");
 
         while (1) {
-            ssize_t num_bytes_read = read(client_socket, buff_rcv, BUFF_SIZE);
-            if (num_bytes_read < 0) {
-                perror("read failed");
-                strcpy(buff_snd, "fail");
-                write(client_socket, buff_snd, strlen(buff_snd) + 1);
-                continue;
+            FD_ZERO(&readfds);
+            FD_SET(STDIN_FILENO, &readfds);
+            FD_SET(client_socket, &readfds);
+            max_sd = (STDIN_FILENO > client_socket) ? STDIN_FILENO : client_socket;
+
+            if (select(max_sd + 1, &readfds, NULL, NULL, NULL) < 0) {
+                perror("select error");
+                exit(1);
             }
 
-            if (num_bytes_read == 0) {
-                printf("Client disconnected\n");
-                break;  // 클라이언트 연결 종료
+            // 클라이언트로부터 메시지 수신
+            if (FD_ISSET(client_socket, &readfds)) {
+                ssize_t num_bytes_read = read(client_socket, buff_rcv, BUFF_SIZE);
+                if (num_bytes_read <= 0) {
+                    if (num_bytes_read == 0) {
+                        printf("클라이언트가 연결을 종료했습니다.\n");
+                    } else {
+                        perror("read failed");
+                    }
+                    close(client_socket);
+                    break;
+                }
+
+                printf("클라이언트로부터 받은 메시지: %.*s\n", (int)num_bytes_read, buff_rcv);
+
+                if (strncmp(buff_rcv, "bye", 3) == 0) {
+                    printf("클라이언트가 'bye'를 보냈습니다. 연결을 종료합니다.\n");
+                    close(client_socket);
+                    break;
+                }
             }
 
-            printf("receive: %.*s\n", (int)num_bytes_read, buff_rcv);
-
-            if (strncmp(buff_rcv, "bye", 3) == 0) {
-                printf("Client said bye. Closing this connection.\n");
-                close(client_socket);
-                break;  // 현재 클라이언트 연결 종료 후 다음 클라이언트 대기
+            // 서버 키보드 입력
+            if (FD_ISSET(STDIN_FILENO, &readfds)) {
+                if (fgets(buff_snd, BUFF_SIZE, stdin) != NULL) {
+                    size_t len = strlen(buff_snd);
+                    if (len > 0 && buff_snd[len-1] == '\n') {
+                        buff_snd[len-1] = '\0';
+                    }
+                    write(client_socket, buff_snd, strlen(buff_snd));
+                    printf("서버 응답 전송: %s\n", buff_snd);
+                }
             }
-
-            // 클라이언트에게 응답 전송
-            sprintf(buff_snd, "success : %s", buff_rcv);
-            write(client_socket, buff_snd, strlen(buff_snd) + 1);
         }
     }
     
-    // 이 부분은 while(1) 루프 때문에 실행되지 않습니다.
-    // 서버를 정상적으로 종료하려면 별도의 종료 조건이 필요합니다.
     close(server_socket);
     return 0;
 }
