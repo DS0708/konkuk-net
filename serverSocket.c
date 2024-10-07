@@ -44,7 +44,7 @@ int main(int argc, char **argv) {
         exit(1);
     }
 
-    printf("서버가 시작되었습니다. 클라이언트의 연결을 기다리는 중...\n");
+    printf("Server start..\n");
 
     while (1) {
         client_addr_size = sizeof(client_addr);
