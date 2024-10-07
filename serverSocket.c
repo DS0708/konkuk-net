@@ -62,8 +62,8 @@ int main(int argc, char **argv) {
             printf("receive: %.*s\n", (int)num_bytes_read, buff_rcv);
 
             if (strncmp(buff_rcv, "bye", 3) == 0) {
-                printf("Client Connection End\n");
                 close(client_socket);
+                printf("Client Connection End\n");
                 break;  // 클라이언트 연결 종료
             }
 
@@ -71,7 +71,6 @@ int main(int argc, char **argv) {
             sprintf(buff_snd, "success : %s", buff_rcv);
             write(client_socket, buff_snd, strlen(buff_snd) + 1);
         }
-
+    }
     return 0;  // 이 부분은 서버가 종료될 경우에 도달
-}
 }
