@@ -89,9 +89,10 @@ int main(int argc, char **argv) {
                 }
             }
 
+            printf("Message :");
+
             // 서버 키보드 입력
             if (FD_ISSET(STDIN_FILENO, &readfds)) {
-                printf("Message :");
                 if (fgets(buff_snd, BUFF_SIZE, stdin) != NULL) {
                     size_t len = strlen(buff_snd);
                     if (len > 0 && buff_snd[len-1] == '\n') {
