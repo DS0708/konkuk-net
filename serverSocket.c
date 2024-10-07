@@ -42,22 +42,33 @@ int main(int argc, char **argv) {
     }
 
     // 클라이언트 요청 처리 루프
-    while (1) {  // 클라이언트와 지속적으로 데이터 송수신
+    while (1) {
+        client_addr_size = sizeof(client_addr);
+        client_socket = accept(server_socket, (struct sockaddr *)&client_addr, &client_addr_size);
+        if (client_socket == -1) {
+            perror("클라이언트 연결 수락 실패");
+            continue;  // 실패시 다음 연결 대기
+        }
+
+        while (1) {
             ssize_t num_bytes_read = read(client_socket, buff_rcv, BUFF_SIZE);
             if (num_bytes_read < 0) {
                 perror("read failed");
                 strcpy(buff_snd, "fail");
                 write(client_socket, buff_snd, strlen(buff_snd) + 1);
-            }else{
-                sprintf(buff_snd, "success : %s", buff_rcv);
-                write(client_socket, buff_snd, strlen(buff_snd) + 1);
+                continue;
             }
 
             printf("receive: %.*s\n", (int)num_bytes_read, buff_rcv);
 
             if (strncmp(buff_rcv, "bye", 3) == 0) {
                 close(client_socket);
+                break;  // 클라이언트 연결 종료
             }
+
+            // 클라이언트에게 응답 전송
+            sprintf(buff_snd, "success : %s", buff_rcv);
+            write(client_socket, buff_snd, strlen(buff_snd) + 1);
         }
 
     return 0;  // 이 부분은 서버가 종료될 경우에 도달
