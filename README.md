@@ -1,1 +1,1 @@
-# konkuk-net
+# konkuk University's Network Programming
