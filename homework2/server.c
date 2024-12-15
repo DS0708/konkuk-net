@@ -88,6 +88,7 @@ void send_to_client(int client_id, const char* message) {
     }
 }
 
+
 void* handle_client(void* arg) {
     client_info* client = (client_info*)arg;
     char buffer[BUFFER_SIZE];
